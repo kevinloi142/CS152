@@ -1,0 +1,128 @@
+%union{
+        int int_val;
+        string* op_val;
+}
+
+%start program
+%token <number> NUMBER
+%token <identifier> IDENT
+%left PLUS
+%left SUB
+%left MULT
+%left DIV
+%left MOD
+%left LT
+%left LTE
+%left GT
+%left GTE
+%left EQ
+%left NEQ
+%right NOT
+%right ASSIGN
+%left AND
+%left OR
+
+%%
+program: /*epsilon*/ | function
+
+function: FUNCTION IDENT SEMICOLON BEGIN_PARAMS declarationloop END_PARAMS
+        BEGIN_LOCALS declarationloop END_LOCALS
+        BEGIN_BODY statementloop END_BODY
+        {printf("function -> FUNCTION IDENT SEMICOLON");
+        printf("BEGIN_PARAMS declarationloop END_PARAMS");
+        printf("BEGIN_BODY statementloop END_BODY");}
+        ;
+
+declarationloop: /*epsilon*/ {printf("declarationloop -> epsilon\n");}
+        | declarationloop declaration SEMICOLON {printf("declarationloop -> declarationloop declaration SEMICOLON\n");}
+        ;
+
+statementloop: statementloop statement SEMICOLON | ;
+
+declaration: identloop COLON INTEGER | identloop COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKEY OF ;
+
+identloop: IDENT | identloop IDENT COMMA;
+
+statement:    var ASSIGN expression
+        | IF bool-expr THEN statementloop ENDIF
+        | IF bool-expr THEN statementloop ELSE statementloop ENDIF
+        | WHILE bool-expr BEGINLOOP statementloop ENDLOOP
+        | DO BEGINLOOP statementloop ENDLOOP WHILE bool-expr
+        | READ varloop
+        | WRITE varloop
+        | CONTINUE
+        | RETURN expression
+        ;
+
+varloop:    var
+| varloop var COMMA
+;
+
+bool_expr:    relation_and_expr
+        | bool_expr OR relation_and_expr        
+	;
+
+relation_and_expr:    relation_expr
+            | relation_and_expr AND relation_expr
+            ;
+
+relation_expr:    notloop expression comp expression
+        notloop TRUE
+        notloop FALSE
+        notloop L_PAREN bool_expr R_PAREN
+        ;
+
+notloop:     NOT
+        | /*epsilon*/
+        ;
+comp:    EQ
+    | NEQ
+    | LT
+    | GT
+    | LTE
+    | GTE
+    ;
+expression:    multiplicative-expr multiplicative-exprloop
+        ;
+
+multiplicative_exprloop:    /*epsilon*/
+                | multiplicative_exprloop PLUS multiplicative_expr
+                | multiplicative_exprloop SUB multiplicative_expr
+                ;
+
+multiplicative_expr:        term termloop
+
+termloop:            /*epsilon*/
+                | termloop MULT term
+                | termloop DIV term
+                | termloop MOD term
+                ;
+term:                minusloop var
+                | minusloop NUMBER
+                | minusloop L_PAREN expression R_PAREN
+                | IDENT L_PAREN R_PAREN
+                | IDENT L_PAREN loop R_PAREN
+                ;
+minusloop:            /*epsilon*/
+| SUB
+                ;
+loop:                expression
+                | loop expression COMMA
+                ;
+var:                IDENT
+                | IDENT L_SQUARE_BRACKET expression R_SQUARE_BRACKET
+                ;
+%%
+int yyerror(string s)
+{
+  extern int yylineno;    // defined and maintained in lex.c
+  extern char *yytext;    // defined and maintained in lex.c
+  cerr << "ERROR: " << s << " at symbol \"" << yytext;
+  cerr << "\" on line " << yylineno << endl;
+  exit(1);
+}
+
+int yyerror(char *s)
+{
+  return yyerror(string(s));
+}
